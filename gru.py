@@ -8,25 +8,83 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 import os.path as osp
 import csv
 import numpy as np
+import pickle
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torchvision.models as models
-from data_gru import NTUDataLoaders, AverageMeter
-import torch.nn.utils.rnn as rnn_utils
 
-args = argparse.ArgumentParser(description='View adaptive')
+import torch.nn.utils.rnn as rnn_utils
+from data_gru import NTUDataLoaders, AverageMeter, NTUSmallDataLoaders
+from networks import LSTM_Simple, GRU_Simple, GRU_Att
+
+import gc
+
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 5
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 5 --att 3
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 3
+
+##############
+# 3 att
+# python gru.py --aug 0 --experiment att3_gru0 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 3
+# python gru.py --aug 0 --experiment att3_gru0 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 3
+
+# 0 att
+# python gru.py --aug 0 --experiment att0_gru3 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100
+# python gru.py --aug 0 --experiment att0_gru3 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1
+
+# 1 att
+# python gru.py --aug 0 --experiment att1_gru2 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 1
+# python gru.py --aug 0 --experiment att1_gru2 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 1
+
+# 2 att
+# python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 2
+# python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 2
+
+# 4 att
+# python gru.py --aug 0 --experiment att4_gru0 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 4 --nlayer 4
+# python gru.py --aug 0 --experiment att4_gru0 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 4 --nlayer 4
+##################
+##############
+# 0 att
+# python gru.py --dropout 0.5 --aug 0 --experiment att0_gru3_d --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100
+# python gru.py --dropout 0.5 --aug 0 --experiment att0_gru3_d --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1
+
+# 3 att
+# python gru.py --dropout 0.5 --aug 0 --experiment att3_gru0_d --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 3
+# python gru.py --dropout 0.5 --aug 0 --experiment att3_gru0_d --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 3
+##################
+
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 4 --lr 0.005 --train 1 --max_epoches 1 --stop_i 3 --debug
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 4 --lr 0.005 --train 1 --max_epoches 1 --stop_i 3 --debug --att 3
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 4 --lr 0.005 --train 1 --max_epoches 1 --stop_i 3 --debug --att 3 --dropout 0.5
+# python gru.py --aug 0 --experiment debug1 --print_freq 500 --batch_size 4 --lr 0.005 --train 1 --max_epoches 1 --stop_i 3 --debug --dropout 0.5 --nlayer 4 --att 4
+
+args = argparse.ArgumentParser(description='Rnn Visual')
+## For debug Only!
 args.add_argument('--stop_i', type=int, default=-1,
                   help='for debug')
-args.add_argument('--model', type=str, default='VA',
-                  help='the neural network to use')
-args.add_argument('--dataset', type=str, default='NTU',
-                  help='select dataset to evlulate')
+args.add_argument('--debug', action='store_true',
+                  help='use samller dataset')
+## For release,
+args.add_argument('--experiment', type=str, default='debug1',
+                  help='the experiment name')
+args.add_argument('--data_path', type=str, default='/content/ntu/',
+                  help='NTU Data Path')
 args.add_argument('--max_epoches', type=int, default=200,
                   help='start number of epochs to run')
 args.add_argument('--lr', type=float, default=0.005,
                   help='initial learning rate')
+
+args.add_argument('--dropout', type=float, default=0,
+                  help='dropout rate')
+args.add_argument('--nlayer', type=int, default=3,
+                  help='nlayer')
+args.add_argument('--att', type=int, default=0,
+                  help='attention layer num')
+
 args.add_argument('--lr_factor', type=float, default=0.1,
                   help='the ratio to reduce lr on each step')
 args.add_argument('--optimizer', type=str, default='Adam',
@@ -41,96 +99,77 @@ args.add_argument('--aug', type=int, default=1,
                   help='data augmentation')
 args.add_argument('--workers', type=int, default=8,
                   help='number of data loading workers')
-args.add_argument('--monitor', type=str, default='val_acc',
-                  help='quantity to monitor (default: val_acc)')
 args.add_argument('--train', type=int, default=1,
                   help='train or test')
 args = args.parse_args()
-
-class LSTM_Simple(nn.Module):
-    def __init__(self, num_classes=120):
-      super(LSTM_Simple, self).__init__()
-      # self.layer1 = nn.LSTMCell(input_size=150, hidden_size=10) # input_size: feature
-      self.lstm1 = nn.LSTM(input_size=150, hidden_size=100, num_layers=3, batch_first=True)
-      # self.lstm2 = nn.LSTM(input_size=10, hidden_size=20, num_layers=1, batch_first=True)
-      self.layer2 = nn.Linear(in_features=100, out_features=num_classes)
-
-    def forward(self, x_pack, hidden):
-      # print(x.shape) # [batch_size, seq_len=129, features=150]
-
-      # x_pack = rnn_utils.pack_padded_sequence(x, x_len, batch_first=True, enforce_sorted=False)
-      # print(x_pack.data.shape) # (seq_len=273, features=150)
-
-
-      out, hidden = self.lstm1(x_pack, hidden)
-      # print(out.data.shape) # (seq_len=273, num_hiddens=10)
-      # print(h1.data.shape) # [num_layers*num_directions, batch_size,  num_hiddens]
-      # print(c1.data.shape) # [num_layers*num_directions, batch_size,  num_hiddens]
-
-      # out, (h1, c1) = self.lstm2(out)
-      # print(out.data.shape) # (seq_len=273, num_hiddens=20)
-
-      out_pad, out_len = rnn_utils.pad_packed_sequence(out, batch_first=True)
-      # print(out_pad.shape) # [batch_size, seq_len=129, num_hiddens=10]
-      
-      feat = torch.mean(out_pad, dim=1)
-      # print(feat.shape) # (batch_size, num_hiddens=10)
-
-      outs = self.layer2(feat)
-      # print(outs.shape) # (batch_size, num_classes=120)
-
-      return outs, hidden
-
-    def init_hidden(self, batch_size):
-        weight = next(self.parameters()).data
-        hidden = (weight.new(3, batch_size, 100).zero_().cuda(),
-                      weight.new(3, batch_size, 100).zero_().cuda())
-        return hidden
 
 
 def main(results):
 
     num_classes = 120
+    n_gru_layers = args.nlayer
+    gru_hidden_size = 100
+    feature_size = 150
 
-    model = LSTM_Simple(num_classes=num_classes)
+    dropout = args.dropout
+
+    atten = [False, False, False, False]
+    if args.att == 1:
+        atten = [True, False, False, False]
+    elif args.att == 2:
+        atten = [True, True, False, False]
+    elif args.att == 3:
+        atten = [True, True, True, False]
+    elif args.att == 4:
+        atten = [True, True, True, True]
+
+    batch_first = True
+
+    # model = LSTM_Simple(num_classes=num_classes)
+    model = GRU_Att(num_classes=num_classes, layers=n_gru_layers, hidden_size=gru_hidden_size, 
+                        input_size=feature_size, atten=atten, batch_first=batch_first, dropout=dropout)
     model = model.cuda()
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    if args.monitor == 'val_acc':
-        mode = 'max'
-        monitor_op = np.greater
-        best = -np.Inf
-        str_op = 'improve'
-    elif args.monitor == 'val_loss':
-        mode = 'min'
-        monitor_op = np.less
-        best = np.Inf
-        str_op = 'reduce'
+    best = -np.Inf
 
-    scheduler = ReduceLROnPlateau(optimizer, mode=mode, factor=args.lr_factor,
+    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=args.lr_factor,
                                 patience=2, cooldown=2, verbose=True)
 
     # Data loading
-    ntu_loaders = NTUDataLoaders(args.case, args.aug)
+    gc.collect()
+    if args.debug: # Debug, smaller dataset
+        ntu_loaders = NTUSmallDataLoaders(args.case, args.aug, data_path=args.data_path)
+    else:
+        ntu_loaders = NTUDataLoaders(args.case, args.aug, data_path=args.data_path)
     train_loader = ntu_loaders.get_train_loader(args.batch_size, args.workers)
     val_loader = ntu_loaders.get_val_loader(args.batch_size, args.workers)
     test_loader = ntu_loaders.get_test_loader(args.batch_size, args.workers)
     train_size = ntu_loaders.get_train_size()
     val_size = ntu_loaders.get_val_size()
-    print('Train on %d samples, validate on %d samples' %
-          (train_size, val_size))
-    assert (len(train_loader) + len(val_loader) + len(test_loader) ) * args.batch_size >= 100000
+    test_size = ntu_loaders.get_test_size()
+    print('Train on %d samples, validate on %d samples, test on %d samples' %
+          (train_size, val_size, test_size))
+    if not args.debug: # Debug
+        assert (len(train_loader) + len(val_loader) + len(test_loader) ) * args.batch_size >= 100000
 
     best_epoch = 0
+    best_hidden = None
     output_dir = root_path
 
     checkpoint = osp.join(output_dir, '%s_best.pth' % args.case)
 
     pred_dir = osp.join(output_dir, '%s_pred.txt' % args.case)
     label_dir = osp.join(output_dir, '%s_label.txt' % args.case)
+
+    att_dir = osp.join(output_dir, '%s_att.pkl' % args.case)
+    len_dir = osp.join(output_dir, '%s_len.pkl' % args.case)
+    x_dir = osp.join(output_dir, '%s_x.pkl' % args.case)
+    y_dir = osp.join(output_dir, '%s_y.pkl' % args.case)
+    visual_dirs = [att_dir, len_dir, x_dir, y_dir]
 
     earlystop_cnt = 0
     csv_file = osp.join(output_dir, '%s_log.csv' % args.case)
@@ -141,7 +180,7 @@ def main(results):
         for epoch in range(args.max_epoches):
             # train for one epoch
             t_start = time.time()
-            train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch)
+            train_loss, train_acc, train_hidden = train(train_loader, model, criterion, optimizer, epoch, best_hidden=best_hidden)
             # evaluate on validation set
             val_loss, val_acc = validate(val_loader, model, criterion)
 
@@ -151,32 +190,32 @@ def main(results):
                   'Train: loss {:.4f}\taccu {:.4f}\tValid: loss {:.4f}\taccu {:.4f}'
                   .format(epoch + 1, time.time() - t_start, train_loss, train_acc, val_loss, val_acc))
 
-            current = val_loss if mode == 'min' else val_acc
-
-            current = current.cpu()
-            if monitor_op(current, best):
-                print('Epoch %d: %s %sd from %.4f to %.4f, '
+            current = val_acc.cpu()
+            if np.greater(current, best):
+                print('Epoch %d: val_acc improved from %.4f to %.4f, '
                       'saving model to %s'
-                      % (epoch + 1, args.monitor, str_op, best, current, checkpoint))
+                      % (epoch + 1, best, current, checkpoint))
                 best = current
                 best_epoch = epoch + 1
+                best_hidden = train_hidden
                 save_checkpoint({
                     'epoch': epoch + 1,
                     'state_dict': model.state_dict(),
                     'best': best,
-                    'monitor': args.monitor,
+                    'monitor': 'val_acc',
                     'optimizer': optimizer.state_dict(),
+                    'best_hidden': best_hidden,
                 }, checkpoint)
                 earlystop_cnt = 0
             else:
-                print('Epoch %d: %s did not %s' % (epoch + 1, args.monitor, str_op))
+                print('Epoch %d: val_acc did not improve' % (epoch + 1))
                 earlystop_cnt += 1
             scheduler.step(current)
-            if earlystop_cnt > 15:
+            if earlystop_cnt > 8:
                 print('Epoch %d: early stopping' % (epoch + 1))
                 break
 
-        print('Best %s: %.4f from epoch-%d' % (args.monitor, best, best_epoch))
+        print('Best val_acc: %.4f from epoch-%d' % (best, best_epoch))
         # save log
         with open(csv_file, 'w') as fw:
             cw = csv.writer(fw)
@@ -185,25 +224,25 @@ def main(results):
         print('Save train and validation log into into %s' % csv_file)
 
     # Testing
-    test(test_loader, model, checkpoint, results, pred_dir, label_dir)
+    test(test_loader, model, checkpoint, results, pred_dir, label_dir, visual_dirs, atten)
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, best_hidden=None):
 
     losses = AverageMeter()
     acces = AverageMeter()
 
     model.train()
-    h = model.init_hidden(args.batch_size)
+    h = model.init_hidden(args.batch_size, best_hidden)
 
     for i, (inputs, x_len, target) in enumerate(train_loader):
-        h = tuple([e.data for e in h])
-        x_pack = rnn_utils.pack_padded_sequence(inputs, x_len, batch_first=True, enforce_sorted=False)
+        # https://discuss.pytorch.org/t/solved-why-we-need-to-detach-variable-which-contains-hidden-representation/1426
+        h = h.detach() # h.data
         
         model.zero_grad()
         optimizer.zero_grad()  # clear gradients out before each mini-batch
 
-        output, h = model(x_pack.cuda(), h)
+        output, h = model(inputs, x_len, h)
         target = target.cuda(non_blocking=True)
         loss = criterion(output, target)
 
@@ -214,6 +253,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # backward
         loss.backward()
+
+        # gradient clipping
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
+
         optimizer.step()  # update parameters
 
         if (i + 1) % args.print_freq == 0:
@@ -223,23 +266,23 @@ def train(train_loader, model, criterion, optimizer, epoch):
                    epoch + 1, i + 1, loss=losses, acc=acces))
         
         if args.stop_i == i: break
-    return losses.avg, acces.avg
+    
+    return losses.avg, acces.avg, h.detach().cpu()
 
 
-def validate(val_loader, model, criterion):
+def validate(val_loader, model, criterion, best_hidden=None):
     losses = AverageMeter()
     acces = AverageMeter()
 
-    h = model.init_hidden(args.batch_size)
+    h = model.init_hidden(args.batch_size, best_hidden)
 
     # switch to evaluation mode
     model.eval()
 
     for i, (inputs, x_len, target) in enumerate(val_loader):
         with torch.no_grad():
-            h = tuple([each.data for each in h])
-            x_pack = rnn_utils.pack_padded_sequence(inputs, x_len, batch_first=True, enforce_sorted=False)
-            output, h = model(x_pack.cuda(), h)
+            h = h.detach()
+            output, h = model(inputs, x_len, h)
 
         target = target.cuda(non_blocking=True)
         with torch.no_grad():
@@ -253,13 +296,16 @@ def validate(val_loader, model, criterion):
     return losses.avg, acces.avg
 
 
-def test(test_loader, model, checkpoint, results, path, label_path):
+def test(test_loader, model, checkpoint, results, path, label_path, visual_dirs, atten):
     acces = AverageMeter()
     # load learnt model that obtained best performance on validation set
     model.load_state_dict(torch.load(checkpoint)['state_dict'], strict=False)
+    best_hidden = torch.load(checkpoint)['best_hidden']
+    # print(best_hidden.shape) # 3, 4, 100
+    
     # switch to evaluation mode
 
-    h = model.init_hidden(args.batch_size)
+    h = model.init_hidden(args.batch_size, best_hidden)
 
     model.eval()
 
@@ -267,9 +313,30 @@ def test(test_loader, model, checkpoint, results, path, label_path):
     t_start = time.time()
     for i, (inputs, x_len, target) in enumerate(test_loader):
         with torch.no_grad():
-            h = tuple([each.data for each in h])
-            x_pack = rnn_utils.pack_padded_sequence(inputs, x_len, batch_first=True, enforce_sorted=False)
-            output, h = model(x_pack.cuda(), h)
+            h = h.detach()
+            if i == 19 and atten[0]:
+                output, h, attentions = model(inputs, x_len, h, visual=True)
+
+                [att_dir, len_dir, x_dir, y_dir] = visual_dirs
+
+                with open(att_dir, 'wb') as ff:
+                    # batch * seq_len * 150
+                    pickle.dump(attentions.detach().cpu().numpy(), ff, pickle.HIGHEST_PROTOCOL)
+
+                with open(len_dir, 'wb') as ff:
+                    # batch
+                    pickle.dump(x_len.detach().cpu().numpy(), ff, pickle.HIGHEST_PROTOCOL)
+
+                with open(x_dir, 'wb') as ff:
+                    # batch * seq_len * 150
+                    pickle.dump(inputs.detach().cpu().numpy(), ff, pickle.HIGHEST_PROTOCOL)
+
+                with open(y_dir, 'wb') as ff:
+                    # batch
+                    pickle.dump(target.detach().cpu().numpy(), ff, pickle.HIGHEST_PROTOCOL)
+
+            else:
+                output, h = model(inputs, x_len, h)
 
         output = output.cpu()
         pred = output.data.numpy()
@@ -310,10 +377,10 @@ def save_checkpoint(state, filename='checkpoint.pth.tar', is_best=False):
 
 if __name__ == '__main__':
 
-    root_path = '/content/results_'+args.model
+    root_path = '/content/results_'+args.experiment
     if not osp.exists(root_path):
         os.mkdir(root_path)
-
+    
     # get the number of total cases of certain dataset
     cases = 2 # 'C-Subject' 'C-Setup'
     results = list()

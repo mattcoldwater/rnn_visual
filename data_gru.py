@@ -52,11 +52,11 @@ class NTUDataLoaders(object):
     def get_train_loader(self, batch_size, num_workers):
         if self.aug == 1:
             return DataLoader(self.train_set, batch_size=batch_size,
-                              shuffle=True, num_workers=num_workers,
+                              shuffle=True, num_workers=num_workers, drop_last=True,
                               collate_fn=self.collate_fn_aug, pin_memory=True)
         else:
             return DataLoader(self.train_set, batch_size=batch_size,
-                              shuffle=True, num_workers=num_workers,
+                              shuffle=True, num_workers=num_workers, drop_last=True,
                               collate_fn=self.collate_fn, pin_memory=True)
 
     def get_val_loader(self, batch_size, num_workers):
@@ -91,8 +91,9 @@ class NTUDataLoaders(object):
 
         x, y = zip(*batch)
         x = [torch.from_numpy(x[i]) for i in range(len(x))]
-        x_len = [_.shape[0] for _ in x]
-        x = rnn_utils.pad_sequence(x, batch_first=True) # [10, 174, 150]
+        x_len = torch.LongTensor([_.shape[0] for _ in x])
+        x = rnn_utils.pad_sequence(x, batch_first=True) 
+        # [10(batch), 174(sequence length, can vary, max seems to be 300), 150]
         y = torch.LongTensor(y) # [10,]
         return x, x_len, y
 
@@ -129,6 +130,8 @@ class NTUDataLoaders(object):
 
         with open(x_pkl, 'rb') as f:
             self.train_X = pickle.load(f)
+        
+        # print(sorted([s.shape[0] for s in self.train_X]))
 
         with open(y_pkl, 'rb') as f:
             self.train_Y = pickle.load(f)
@@ -144,6 +147,35 @@ class NTUDataLoaders(object):
 
         with open(test_y_pkl, 'rb') as f:
             self.test_Y = pickle.load(f)
+
+class NTUSmallDataLoaders(NTUDataLoaders):
+    def create_datasets(self):
+        if self.case == 0:
+            self.metric = 'C-Subject'
+        else:
+            self.metric = 'C-Setup'
+
+        # original code for reference
+        # criterion = nn.CrossEntropyLoss().cuda()
+        # for i, (inputs, maxmin, target) in enumerate(train_loader):
+        # loss = criterion(output, target)
+
+        gc.collect()
+        save_path = self.transformed_path
+        evaluation = self.metric
+
+        valid_x_pkl = osp.join(save_path, '%s_valid_x.pkl' % (evaluation))
+        valid_y_pkl = osp.join(save_path, '%s_valid_y.pkl' % (evaluation))
+
+        with open(valid_x_pkl, 'rb') as f:
+            self.val_X = pickle.load(f)
+            self.train_X = self.val_X
+            self.test_X = self.val_X
+
+        with open(valid_y_pkl, 'rb') as f:
+            self.val_Y = pickle.load(f)
+            self.test_Y = self.val_Y
+            self.train_Y = self.val_Y
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

@@ -1,16 +1,9 @@
 # Pytorch Implementation of [EleAtt-RNN: Adding Attentiveness to Neurons in Recurrent Neural Networks]
 
 
-## Visualization of the Learned Views
-
-![image](https://github.com/microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition/blob/master/image/visulization.png)
-
-Figure 3: Frames of (a) the similar posture captured from different viewpoints for the same subject, and (b) the same action “drinking” captured from different viewpoints for different subjects. 2nd row: original skeletons. 3rd row: Skeleton representations from the observation viewpoints of our VA-RNN model. 4th row: Skeleton representations from the observation viewpoints of our VA-CNN model.
-
-
 ## Data Preparation
 
-We use the NTU60 RGB+D dataset as an example for description. We need to first dowload the [NTU-RGB+D](https://github.com/shahroudy/NTURGB-D) dataset
+We use the NTU120 RGB+D dataset as an example for description. We need to first dowload the [NTU120-RGB+D](https://github.com/shahroudy/NTURGB-D) dataset
 
 - Process the data
 ```bash
@@ -24,61 +17,34 @@ We use the NTU60 RGB+D dataset as an example for description. We need to first d
 ```
 
 
-## Training
+## Training and Testing
 
 ```bash
-# For CNN-based model with view adaptation module
-python  va-cnn.py --model VA --aug 1 --train 1
+# 3 att
+python gru.py --aug 0 --experiment att3_gru0 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 3
+python gru.py --aug 0 --experiment att3_gru0 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 3
 
-# For CNN-based model without view adaptation module
-python  va-cnn.py --model baseline --aug 1 --train 1
+# 0 att
+python gru.py --aug 0 --experiment att0_gru3 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100
+python gru.py --aug 0 --experiment att0_gru3 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1
 
-# For RNN-based model with view adaptation module
-python va-rnn.py --model VA --aug 1 --train 1
+# 1 att
+python gru.py --aug 0 --experiment att1_gru2 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 1
+python gru.py --aug 0 --experiment att1_gru2 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 1
 
-# For RNN-based model without view adaptation module
-python va-rnn.py --model baseline --aug 1 --train 1
+# 2 att
+python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 --lr 0.005 --train 1 --max_epoches 100 --att 2
+python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 2
 ```
 
-
-
-## Testing
-
-```bash
-# For CNN-based model with view adaptation module
-python  va-cnn.py --model VA --aug 1 --train 0
-
-# For CNN-based model without view adaptation module
-python  va-cnn.py --model baseline --aug 1 --train 0
-
-# For RNN-based model with view adaptation module
-python va-rnn.py --model VA --aug 1 --train 0
-
-# For RNN-based model without view adaptation module
-python va-rnn.py --model baseline --aug 1 --train 0
-```
 
 ## Reference
 
 
 ```
-
-https://github.com/microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition
-
-@article{zhang2019view,
-  title={View adaptive neural networks for high performance skeleton-based human action recognition},
-  author={Zhang, Pengfei and Lan, Cuiling and Xing, Junliang and Zeng, Wenjun and Xue, Jianru and Zheng, Nanning},
-  journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
-  year={2019},
-}
-
-@inproceedings{zhang2017view,
-  title={View adaptive recurrent neural networks for high performance human action recognition from skeleton data},
-  author={Zhang, Pengfei and Lan, Cuiling and Xing, Junliang and Zeng, Wenjun and Xue, Jianru and Zheng, Nanning},
-  booktitle={Proceedings of the IEEE International Conference on Computer Vision},
-  pages={2117--2126},
-  year={2017}
-}
-
+1. Pengfei Zhang et al. Adding Attentiveness to Neurons in Recurrent Neural Networks. In IEEE, 2020.
+2. Jun Liu, et al. NTU RGB+D 120: A Large-Scale Benchmark for 3D Human Activity Understanding. In IEEE, 2019.
+3. A. Shahroudy, J. Liu, T.-T. Ng, and G. Wang. Ntu rgb+d: A large scale dataset for 3d human activity analysis. In CVPR, 2016.
+4. Microsoft. (n.d.). Microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition. Retrieved December 12, 2020, from https://github.com/microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition
+5. PyTorch documentation¶. (n.d.). Retrieved December 12, 2020, from https://pytorch.org/docs/stable/index.html
 ```
-

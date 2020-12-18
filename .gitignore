@@ -8,3 +8,7 @@
 !/data/ntu
 /data/ntu/*
 !/data/ntu/*.py
+
+!/visualization
+/visualization/*
+!/visualization/*.ipynb

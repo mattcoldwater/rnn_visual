@@ -42,9 +42,11 @@ python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 -
 
 
 ```
-1. Pengfei Zhang et al. Adding Attentiveness to Neurons in Recurrent Neural Networks. In IEEE, 2020.
-2. Jun Liu, et al. NTU RGB+D 120: A Large-Scale Benchmark for 3D Human Activity Understanding. In IEEE, 2019.
-3. A. Shahroudy, J. Liu, T.-T. Ng, and G. Wang. Ntu rgb+d: A large scale dataset for 3d human activity analysis. In CVPR, 2016.
-4. Microsoft. (n.d.). Microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition. Retrieved December 12, 2020, from https://github.com/microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition
-5. PyTorch documentation¶. (n.d.). Retrieved December 12, 2020, from https://pytorch.org/docs/stable/index.html
+1. P. Zhang, J. Xue, C. Lan, W. Zeng, Z. Gao, and N. Zheng, “EleAtt-RNN: Adding Attentiveness to Neurons in Recurrent Neural Networks,” IEEE Transactions on Image Processing, vol. 29, pp. 1061–1073, 2020. 
+2. J. Liu, A. Shahroudy, M. Perez, G. Wang, L.-Y. Duan, and A. C. Kot, “NTU RGB+D 120: A Large-Scale Benchmark for 3D Human Activity Understanding,” IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 42, no. 10, pp. 2684–2701, 2020. 
+3. A. Shahroudy, J. Liu, T.-T. Ng, and G. Wang, “NTU RGB+D: A Large Scale Dataset for 3D Human Activity Analysis,” 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2016. 
+4. P. Zhang, C. Lan, J. Xing, W. Zeng, J. Xue, and N. Zheng, “microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition,” GitHub. [Online]. Available: https://github.com/microsoft/View-Adaptive-Neural-Networks-for-Skeleton-based-Human-Action-Recognition. [Accessed: 18-Dec-2020]. 
+5. A. Paszke et al., "Pytorch: An imperative style high-performance deep learning library", Proc. Adv. Neural Inf. Process. Syst., pp. 8026-8037, 2019.
+6. Enriccorona, “enriccorona/human-motion-prediction-pytorch,” GitHub. [Online]. Available: https://github.com/enriccorona/human-motion-prediction-pytorch. [Accessed: 18-Dec-2020]. 
+7. XiaoCode-er, “XiaoCode-er/3D-Skeleton-Display,” GitHub. [Online]. Available: https://github.com/XiaoCode-er/3D-Skeleton-Display. [Accessed: 18-Dec-2020]. 
 ```

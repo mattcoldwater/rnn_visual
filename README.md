@@ -1,5 +1,8 @@
 # Pytorch Implementation of [EleAtt-RNN: Adding Attentiveness to Neurons in Recurrent Neural Networks]
 
+## Pre-trained Model
+
+[Pre-trained Model](https://drive.google.com/drive/folders/1-859NwPYWt2UQoNpCdxwo5gn2QLsj5YV?usp=sharing)
 
 ## Data Preparation
 

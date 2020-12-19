@@ -40,6 +40,25 @@ python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 -
 python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 --lr 0.005 --train 0 --max_epoches 1 --att 2
 ```
 
+## Visualizing skeleton
+
+```bash
+#With generated attention response
+#create skeleton instance
+sk = Draw3DSkeleton(file=data_from_net, save_path=path_test_result, is_file_txt=False)
+#set generated relative attention response
+sk.set_relative_response(attention_response=attention_response, arrange_required=True)
+#visualize the skeleton with attention in a 3D plot
+sk.visual_skeleton_animate(use_relative_response=True, scattersize_max=300, sleep_time=0.1, is_image_save=True, skeleton_color='r', joint_color='blue')
+
+#With constant(aritificial) attention
+#create skeleton instance
+sk_plain = Draw3DSkeleton(file=attention_response, save_path=path_rest_result_plain, is_file_txt=False) 
+#set constant attention response
+sk_plain.set_relative_response(attention_response=None, arrange_required=False)
+#visualize the skeleton with attention in a 3D plot
+sk_plain.visual_skeleton_animate(use_relative_response=True, scattersize_max=50, sleep_time=0.5, is_image_save=True, skeleton_color='r', joint_color='blue')
+```
 
 ## Reference
 

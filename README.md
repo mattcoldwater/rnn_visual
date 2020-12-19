@@ -39,6 +39,7 @@ python gru.py --aug 0 --experiment att2_gru1 --print_freq 500 --batch_size 256 -
 
 ## Visualizing skeleton
 
+```bash
 #With generated attention response
 #create skeleton instance
 sk = Draw3DSkeleton(file=data_from_net, save_path=path_test_result, is_file_txt=False)
@@ -54,7 +55,7 @@ sk_plain = Draw3DSkeleton(file=attention_response, save_path=path_rest_result_pl
 sk_plain.set_relative_response(attention_response=None, arrange_required=False)
 #visualize the skeleton with attention in a 3D plot
 sk_plain.visual_skeleton_animate(use_relative_response=True, scattersize_max=50, sleep_time=0.5, is_image_save=True, skeleton_color='r', joint_color='blue')
-
+```
 
 ## Reference
 
